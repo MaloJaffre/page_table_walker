@@ -1,1 +1,12 @@
 _opam/
+_build/
+.cache/
+CMakeFiles/
+**/proofs/*/generated*
+**/proofs/*/dune
+**/proofs/*/proof_files
+compile_commands.json
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.a
