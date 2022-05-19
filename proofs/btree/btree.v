@@ -11,7 +11,7 @@ Inductive path (A : Type) : Type :=
 Arguments leaf {A}.
 Arguments node {A} v l r.
 Arguments top {A}.
-Arguments down {A} b a p t.
+Arguments down {A} b a t p.
 
 (* TODO: rename state, add d to it and into struct *)
 Definition zipper (A : Type) : Type := bool * tree A * path A.
@@ -166,6 +166,53 @@ Proof.
   induction t; simpl; congruence.
 Qed.
 
+
+Inductive Forall_tree {A} (P : A -> Prop) : tree A -> Prop :=
+| Forall_tree_leaf : Forall_tree P leaf
+| Forall_tree_node : forall a l r, P a -> Forall_tree P l -> Forall_tree P r -> Forall_tree P (node a l r).
+
+Inductive Forall_path {A} (P : A -> Prop) : path A -> Prop :=
+| Forall_path_top : Forall_path P top
+| Forall_path_dowb : forall b a t p, P a -> Forall_tree P t -> Forall_path P p -> Forall_path P (down b a t p).
+
+Definition Forall_zipper {A} (P : A -> Prop) (z : zipper A) : Prop :=
+  Forall_tree P z.1.2 /\ Forall_path P z.2.
+
+Lemma forall_up_to_left {A} (P : A -> Prop) (z : zipper A) :
+  Forall_zipper P z -> Forall_zipper P (up_to_left z).
+Proof.
+  destruct z as [[[] []] p]; simpl; eauto.
+  - intros [Ht Hp]; simpl in *.
+    split; simpl.
+    all: try constructor; by inversion Ht.
+Qed.
+
+Lemma forall_left_to_right {A} (P : A -> Prop) (z : zipper A) :
+  Forall_zipper P z -> Forall_zipper P (left_to_right z).
+Proof.
+  destruct z as [[[] t] []]; simpl; eauto.
+  - intros [Ht Hp]; simpl in *.
+    split; simpl; case b.
+    all: try constructor; by inversion Hp.
+Qed.
+
+(* Lemma forall_right_to_up {A} (P : A -> Prop) (z : zipper A) :
+  Forall_zipper P z -> Forall_zipper P (right_to_up z).
+Proof.
+  destruct z as [[[] t] []]; simpl; eauto.
+  - intros [Ht Hp]; simpl in *.
+    split; simpl; case b.
+    all: try constructor; by inversion Hp.
+Qed. *)
+
+Lemma forall_equal_duplicate {A} {t : tree A} {b} :
+  Forall_zipper (λ p, p.1 = p.2) (b, map_tree duplicate t, top).
+Proof.
+  split; simpl.
+  - induction t; by constructor.
+  - constructor.
+Qed.
+
 (* #[export] Hint Rewrite @size_up_to_left : lithium_rewrite.
 #[export] Hint Rewrite @size_left_to_right : lithium_rewrite.
 #[export] Hint Rewrite @size_right_to_up : lithium_rewrite.
@@ -201,6 +248,12 @@ match t with
       | node ua ul ur => node (ta, ua) (zip_tree tl ul) (zip_tree tr ur)
     end
 end.
+
+Lemma forall_equal_zip {A} {t u: tree A} (Htu: zip_tree_agree t u) (Hzip: Forall_tree (λ p, p.1 = p.2) (zip_tree t u)) :
+  u = t.
+Proof.
+  induction Htu; f_equal; inversion Hzip; eauto.
+Qed.
 
 Lemma size_zip_tree {A} (t u : tree A) (Htu : zip_tree_agree t u) :
   size_tree (zip_tree t u) = size_tree t
@@ -271,7 +324,10 @@ Global Instance subsume_leaf_inst d p  :
 End pi.
 
 Definition PI_size_tree_pure (p : type) (z : zipper (type * type)) : Prop :=
-  p = with_refinement (int (size_t)) (size_zipper z) /\ size_zipper_all z ≤ max_int size_t.
+  p = with_refinement (int (size_t)) (size_zipper z) /\
+  size_zipper_all z ≤ max_int size_t /\
+  Forall_zipper (fun pa => pa.1 = pa.2) z.
+
 Definition PI_size_tree (pz : type * zipper (type * type)) : iPropI Σ :=
   ⌜PI_size_tree_pure pz.1 pz.2⌝.
 
@@ -294,19 +350,21 @@ Global Instance simplify_goal_PI_size_tree_inst d z :
 Lemma PI_size_tree_ul : `{PI_size_tree (d, z) -∗ PI_size_tree (d, up_to_left z)}.
 Proof.
   iPureIntro.
-  intros d z [Hd Hsize]. simpl in *.
-  split.
+  intros d z (Hd & Hsize & Hz). simpl in *.
+  split; try split.
   - by rewrite size_up_to_left.
   - by rewrite size_all_up_to_left.
+  - by apply forall_up_to_left.
 Qed.
 
 Lemma PI_size_tree_lr : `{PI_size_tree (d, z) -∗ PI_size_tree (d, left_to_right z)}.
 Proof.
   iPureIntro.
-  intros d z [Hd Hsize]. simpl in *.
-  split.
+  intros d z (Hd & Hsize & Hz). simpl in *.
+  split; try split.
   - by rewrite size_left_to_right.
   - by rewrite size_all_left_to_right.
+  - by apply forall_left_to_right.
 Qed.
 
 (* Global Instance subsume_place1 {f_coq : type -> type -> (type * type)} {a d l r}:
