@@ -2,3 +2,6 @@
 -arg -w -arg -notation-overridden
 -arg -w -arg -redundant-canonical-projection
 -Q _build/default/proofs/btree refinedc.project.page_table_walker.btree
+-Q draft dradt
+-Q _build/default/proofs/pgtable_free refinedc.project.page_table_walker.pgtable_free
+-Q _build/default/proofs/pgtable_leaf refinedc.project.page_table_walker.pgtable_leaf

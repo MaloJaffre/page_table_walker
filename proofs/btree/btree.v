@@ -1,5 +1,5 @@
 From refinedc.typing Require Import typing.
-
+(* Notation "'[∗' 'map]' k ↦ x ∈ m , P" := (big_opM bi_sep (λ k x, P%I) m) : bi_scope. *)
 Inductive tree (A : Type) : Type :=
 | leaf : tree A
 | node : A -> tree A -> tree A -> tree A.
@@ -34,7 +34,7 @@ Global Instance maybe_node {A} : Maybe3 (@node A) := λ t,
   | node a l r => Some (a, l, r)
   end.
 
-Global Instance inhleafabited_tree A : Inhabited (tree A) := populate leaf.
+Global Instance inhabited_tree A : Inhabited (tree A) := populate leaf.
 Global Instance inhabited_path A : Inhabited (path A) := populate top.
 
 Global Instance simpl_both_rel_leaf A (t : tree A) : SimplBothRel (=) (maybe3 node t) None (t = leaf).

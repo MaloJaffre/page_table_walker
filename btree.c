@@ -131,4 +131,25 @@ size_t tree_size_with_map(tree_t *t) {
   return count;
 }
 
+[[rc::parameters("p : loc", "t : {tree type}")]]
+size_t tree_size_inner(tree_t *t, int* count ) {
+  if(*t != NULL) {
+    tree_size_inner(t, &(*t)->left);
+    tree_size_inner(t, &(*t)->right);
+    count++;
+  }
+}
+
+
+[[rc::parameters("p : loc", "t : {tree type}")]]
+[[rc::args("p @ &own<t @ tree_t>")]]
+[[rc::requires("{size_tree t ≤ max_int size_t}")]]
+[[rc::returns("{size_tree t} @ int<size_t>")]]
+[[rc::ensures("own p : t @ tree_t")]]
+size_t tree_size_inline(tree_t *t) {
+  size_t count = 0;
+  tree_size_inner(t, &count);
+  return count;
+}
+
 // maybe encapsulate in a closure? (f, payload, arg, PI)  + superclosure adapted to this map?
